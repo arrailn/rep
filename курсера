@@ -1,0 +1,158 @@
+
+# Import necessary libraries
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+
+# Load the data
+url = "https://raw.githubusercontent.com/selva86/datasets/master/BostonHousing.csv"
+df = pd.read_csv(url)
+
+# View the first few rows of the data for exploration
+print(df.head())
+
+# Get information about the data
+print(df.info())
+
+# Summary statistics
+print(df.describe())
+
+
+#Now having an understanding of the data, we can proceed to perform the tasks.
+
+### Task 2: Create Basic Statistics and Visualizations for Senior Management.
+
+#1. **Histogram for the "Median value of owner-occupied homes" variable**:
+
+
+plt.figure(figsize=(10, 6))
+sns.histplot(df['MEDV'], kde=True, bins=20, color='blue')
+plt.title('Histogram of Median Value of Owner-Occupied Homes')
+plt.xlabel('Median value of owner-occupied homes ($1000)')
+plt.ylabel('Frequency')
+plt.show()
+
+#2. **Histogram for the Charles River variable**:
+
+
+plt.figure(figsize=(6, 4))
+sns.countplot(data=df, x='CHAS', palette='Set2')
+plt.title('Histogram of Charles River Variable')
+plt.xlabel('Whether tract bounds river (0 - No, 1 - Yes)')
+plt.ylabel('Frequency')
+plt.show()
+
+
+#3. **Histogram for MEDV variable compared with AGE variable**:
+
+
+df['AGE_Group'] = pd.cut(df['AGE'], bins=[0, 35, 70, np.inf], labels=['35 years and younger', '35 to 70 years', '70 years and older'])
+
+plt.figure(figsize=(10, 6))
+sns.histplot(data=df, x='MEDV', hue='AGE_Group', multiple='stack', bins=20, palette='Set3', kde=True)
+plt.title('Histogram of Median Value of Owner-Occupied Homes by Age')
+plt.xlabel('Median value of owner-occupied homes ($1000)')
+plt.ylabel('Frequency')
+plt.legend(title='Age Group', loc='upper right')
+plt.show()
+
+
+#4. **Scatter plot for NOX and INDUS variables**:
+
+
+plt.figure(figsize=(8, 6))
+sns.scatterplot(data=df, x='NOX', y='INDUS', color='green')
+plt.title('Scatter Plot: NOX vs INDUS')
+plt.xlabel('Nitric oxides concentration (parts per 10 million)')
+plt.ylabel('Proportion of non-retail business acres per town')
+plt.show()
+
+#5. **Histogram for the PTRATIO variable**:
+
+
+plt.figure(figsize=(10, 6))
+sns.histplot(df['PTRATIO'], kde=True, bins=20, color='orange')
+plt.title('Histogram of Pupil-Teacher Ratio')
+plt.xlabel('Pupil-teacher ratio')
+plt.ylabel('Frequency')
+plt.show()
+
+
+### Task 3: Use Appropriate Tests to Answer the Given Questions.
+
+#1. **T-test to determine significant difference in the median value of homes bounded by the Charles River**:
+
+#Hypotheses:
+#- H0: The mean median values of homes for both groups (bounded by Charles River and not bounded) are equal.
+#- H1: The mean median values of homes for both groups are not equal.
+
+
+group1 = df[df['CHAS'] == 1]['MEDV']
+group2 = df[df['CHAS'] == 0]['MEDV']
+
+t_stat, p_value = stats.ttest_ind(group1, group2)
+print("T-statistic:", t_stat)
+print("p-value:", p_value)
+
+alpha = 0.05
+if p_value < alpha:
+    print("Reject null hypothesis: There is a significant difference in median home values bounded by the Charles River.")
+else:
+    print("Accept null hypothesis: There is no significant difference in median home values bounded by the Charles River.")
+
+#2. **ANOVA to determine if there is a difference in median home values (MEDV) for each age group**:
+
+#Hypotheses:
+#- H0: The mean median home values are the same for all age groups.
+#- H1: The mean median home values differ for at least one age group.
+
+
+f_stat, p_value = stats.f_oneway(df[df['AGE_Group'] == '35 years and younger']['MEDV'],
+                                  df[df['AGE_Group'] == '35 to 70 years']['MEDV'],
+                                  df[df['AGE_Group'] == '70 years and older']['MEDV'])
+
+print("F-statistic:", f_stat)
+print("p-value:", p_value)
+
+alpha = 0.05
+if p_value < alpha:
+    print("Reject null hypothesis: There is a significant difference in median home values across different age groups.")
+else:
+    print("Accept null hypothesis: There is no significant difference in median home values across different age groups.")
+
+#3. **Pearson correlation to determine if there is a relationship between nitric oxide concentration and proportion of non-retail business acres per town**:
+
+#Hypotheses:
+#- H0: There is no correlation between nitric oxide concentration and proportion of non-retail business acres.
+#- H1: There is a correlation between nitric oxide concentration and proportion of non-retail business acres.
+
+corr_coef, p_value = stats.pearsonr(df['NOX'], df['INDUS'])
+print("Pearson correlation coefficient:", corr_coef)
+print("p-value:", p_value)
+
+alpha = 0.05
+if p_value < alpha:
+    print("Reject null hypothesis: There is a significant correlation between nitric oxide concentration and proportion of non-retail business acres.")
+else:
+    print("Accept null hypothesis: There is no significant correlation between nitric oxide concentration and proportion of non-retail business acres.")
+
+#4. **Regression analysis to assess the impact of additional weighted distance to five Boston employment centers on median home values occupied by owners**:
+
+#Hypotheses:
+#- H0: Additional weighted distance to Boston employment centers does not influence median home values occupied by owners.
+#- H1: Additional weighted distance to Boston employment centers influences median home values occupied by owners.
+
+# Prepare data for regression analysis
+X = df[['DIS']]  # Predictor variable
+y = df['MEDV']   # Dependent variable
+
+# Add constant for the model
+X = sm.add_constant(X)
+
+# Create linear regression model
+model = sm.OLS(y, X).fit()
+
+# Print regression analysis results
+print(model.summary())
